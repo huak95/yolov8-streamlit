@@ -9,6 +9,8 @@ import streamlit as st
 import settings
 import helper
 
+import os
+
 # Setting page layout
 st.set_page_config(
     page_title="Object Detection using YOLOv8",
@@ -25,16 +27,28 @@ st.sidebar.header("ML Model Config")
 
 # Model Options
 model_type = st.sidebar.radio(
-    "Select Task", ['Detection', 'Segmentation'])
+    "Select Task", ['Detection', 'Segmentation', 'CustomModel'])
 
 confidence = float(st.sidebar.slider(
     "Select Model Confidence", 25, 100, 40)) / 100
 
+image_size = int(st.sidebar.number_input(
+    "Select Model Image Size", value=640))
+
 # Selecting Detection Or Segmentation
+# Custom Model Upload
 if model_type == 'Detection':
     model_path = Path(settings.DETECTION_MODEL)
 elif model_type == 'Segmentation':
     model_path = Path(settings.SEGMENTATION_MODEL)
+elif model_type == 'CustomModel':
+    uploaded_weight = st.sidebar.file_uploader(
+        "Choose an weight...", type=('pt')
+    )
+
+    model_path = Path('./weights/yolov8-custom.pt')
+    with open(model_path, 'wb') as f:
+        f.write(uploaded_weight.getbuffer())
 
 # Load Pre-trained ML Model
 try:
@@ -80,7 +94,8 @@ if source_radio == settings.IMAGE:
         else:
             if st.sidebar.button('Detect Objects'):
                 res = model.predict(uploaded_image,
-                                    conf=confidence
+                                    conf=confidence,
+                                    imgsz=image_size
                                     )
                 boxes = res[0].boxes
                 res_plotted = res[0].plot()[:, :, ::-1]
