@@ -49,6 +49,12 @@ elif model_type == 'CustomModel':
     model_path = Path('./weights/yolov8-custom.pt')
     with open(model_path, 'wb') as f:
         f.write(uploaded_weight.getbuffer())
+        
+# setting
+show_labels = st.sidebar.toggle('show_labels', True) 
+show_conf = st.sidebar.toggle('show_conf', True)
+show_boxes = st.sidebar.toggle('show_boxes', True)
+show_masks = st.sidebar.toggle('show_masks', True)
 
 # Load Pre-trained ML Model
 try:
@@ -95,12 +101,31 @@ if source_radio == settings.IMAGE:
             if st.sidebar.button('Detect Objects'):
                 res = model.predict(uploaded_image,
                                     conf=confidence,
-                                    imgsz=image_size
+                                    imgsz=image_size,
                                     )
                 boxes = res[0].boxes
-                res_plotted = res[0].plot()[:, :, ::-1]
+                # st.text(help(res[0].plot))
+                res_plotted = res[0].plot(
+                    labels=show_labels,
+                    conf=show_conf, 
+                    boxes=show_boxes,
+                    masks=show_masks,
+                    )[:, :, ::-1]
+
                 st.image(res_plotted, caption='Detected Image',
                          use_column_width=True)
+                
+                pil_res_plotted = PIL.Image.fromarray(res_plotted)
+                pil_res_plotted.save("res.jpg")
+                
+                with open("res.jpg", "rb") as file:
+                    btn = st.download_button(
+                            label="Download image",
+                            data=file,
+                            file_name=f"{source_img.name.split('.')[0]}_detect.png",
+                            mime="image/png"
+                        )
+
                 try:
                     with st.expander("Detection Results"):
                         for box in boxes:
